@@ -5,21 +5,29 @@ import (
 	"net/http"
 
 	httpHandler "github.com/uthso21/inventory_management_backend/internal/controller/http"
+	"github.com/uthso21/inventory_management_backend/internal/database"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
 	usecases "github.com/uthso21/inventory_management_backend/internal/service"
 )
 
 func main() {
-	// Initialize repository layer
+
+	// Connect to Database FIRST
+	database.Connect()
+
+	// -------- Warehouse Setup --------
+	warehouseRepo := repository.NewWarehouseRepository()
+	warehouseService := usecases.NewWarehouseService(warehouseRepo)
+	warehouseHandler := httpHandler.NewWarehouseHandler(warehouseService)
+
+	// -------- User Setup --------
 	userRepo := repository.NewUserRepository()
-
-	// Initialize use case/service layer
 	userService := usecases.NewUserService(userRepo)
-
-	// Initialize HTTP handler layer
 	userHandler := httpHandler.NewUserHandler(userService)
 
-	// Setup routes
+	// -------- Routes --------
+
+	// Users
 	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -34,6 +42,22 @@ func main() {
 	http.HandleFunc("/users/get", userHandler.GetUser)
 	http.HandleFunc("/users/update", userHandler.UpdateUser)
 	http.HandleFunc("/users/delete", userHandler.DeleteUser)
+
+	// Warehouses
+	http.HandleFunc("/warehouses", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			warehouseHandler.ListWarehouses(w, r)
+		case http.MethodPost:
+			warehouseHandler.CreateWarehouse(w, r)
+		case http.MethodPut:
+			warehouseHandler.UpdateWarehouse(w, r)
+		case http.MethodDelete:
+			warehouseHandler.DeleteWarehouse(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	// Start server
 	port := ":8080"
