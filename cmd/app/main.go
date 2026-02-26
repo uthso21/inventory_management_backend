@@ -6,20 +6,32 @@ import (
 
 	httpHandler "github.com/uthso21/inventory_management_backend/internal/controller/http"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
-	usecases "github.com/uthso21/inventory_management_backend/internal/service"
+	"github.com/uthso21/inventory_management_backend/internal/service"
 )
 
 func main() {
-	// Initialize repository layer
+
+	// =========================
+	// User Module Initialization
+	// =========================
+
 	userRepo := repository.NewUserRepository()
-
-	// Initialize use case/service layer
-	userService := usecases.NewUserService(userRepo)
-
-	// Initialize HTTP handler layer
+	userService := service.NewUserService(userRepo)
 	userHandler := httpHandler.NewUserHandler(userService)
 
-	// Setup routes
+	// =========================
+	// Purchase Module Initialization
+	// =========================
+
+	purchaseRepo := repository.NewPurchaseRepository()
+	purchaseService := service.NewPurchaseService(purchaseRepo)
+	purchaseHandler := httpHandler.NewPurchaseHandler(purchaseService)
+
+	// =========================
+	// Routes
+	// =========================
+
+	// User routes
 	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -35,9 +47,16 @@ func main() {
 	http.HandleFunc("/users/update", userHandler.UpdateUser)
 	http.HandleFunc("/users/delete", userHandler.DeleteUser)
 
-	// Start server
+	// Purchase route
+	http.HandleFunc("/purchases", purchaseHandler.CreatePurchase)
+
+	// =========================
+	// Start Server
+	// =========================
+
 	port := ":8080"
 	log.Printf("Server starting on port %s", port)
+
 	if err := http.ListenAndServe(port, nil); err != nil {
 		log.Fatal(err)
 	}
