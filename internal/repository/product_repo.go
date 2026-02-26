@@ -1,107 +1,114 @@
 package repository
 
 import (
-	"database/sql"
+	"context"
+	"errors"
+	"sync"
 
 	"github.com/uthso21/inventory_management_backend/internal/entity"
 )
 
-type ProductRepository struct {
-	DB *sql.DB
+var (
+	ErrProductNotFound = errors.New("product not found")
+	ErrProductExists   = errors.New("product already exists")
+)
+
+// ProductRepository defines the interface for product data access
+type ProductRepository interface {
+	Create(ctx context.Context, product *entity.Product) error
+	GetByID(ctx context.Context, id int) (*entity.Product, error)
+	GetBySKU(ctx context.Context, sku string) (*entity.Product, error)
+	Update(ctx context.Context, product *entity.Product) error
+	Delete(ctx context.Context, id int) error
+	List(ctx context.Context) ([]*entity.Product, error)
 }
 
-func NewProductRepository(db *sql.DB) *ProductRepository {
-	return &ProductRepository{DB: db}
+// productRepository is the concrete implementation of ProductRepository
+type productRepository struct {
+	mu       sync.RWMutex
+	products map[int]*entity.Product
+	nextID   int
 }
 
-func (r *ProductRepository) CreateProduct(product *entity.Product) error {
-	query := `INSERT INTO products (name, sku, price, description, stock) VALUES ($1, $2, $3, $4, $5)`
-	_, err := r.DB.Exec(query, product.Name, product.SKU, product.Price, product.Description, product.Stock)
-	return err
+// NewProductRepository creates a new instance of ProductRepository
+func NewProductRepository() ProductRepository {
+	return &productRepository{
+		products: make(map[int]*entity.Product),
+		nextID:   1,
+	}
 }
 
-func (r *ProductRepository) GetProducts() ([]entity.Product, error) {
-	rows, err := r.DB.Query(`SELECT id, name, sku, price, description, stock FROM products`)
+func (r *productRepository) Create(ctx context.Context, product *entity.Product) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	if err != nil {
-		return nil, err
+	// Check for duplicate SKU
+	for _, p := range r.products {
+		if p.SKU == product.SKU {
+			return ErrProductExists
+		}
 	}
 
-	defer rows.Close()
+	product.ID = r.nextID
+	r.nextID++
+	r.products[product.ID] = product
+	return nil
+}
 
-	var products []entity.Product
+func (r *productRepository) GetByID(ctx context.Context, id int) (*entity.Product, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
-	for rows.Next() {
-		var p entity.Product
+	p, ok := r.products[id]
+	if !ok {
+		return nil, ErrProductNotFound
+	}
+	return p, nil
+}
 
-		err := rows.Scan(
-			&p.ID,
-			&p.Name,
-			&p.SKU,
-			&p.Price,
-			&p.Description,
-			&p.Stock,
-		)
+func (r *productRepository) GetBySKU(ctx context.Context, sku string) (*entity.Product, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
-		if err = rows.Err(); err != nil {
-			return nil, err
+	for _, p := range r.products {
+		if p.SKU == sku {
+			return p, nil
 		}
+	}
+	return nil, ErrProductNotFound
+}
 
+func (r *productRepository) Update(ctx context.Context, product *entity.Product) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.products[product.ID]; !ok {
+		return ErrProductNotFound
+	}
+
+	r.products[product.ID] = product
+	return nil
+}
+
+func (r *productRepository) Delete(ctx context.Context, id int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.products[id]; !ok {
+		return ErrProductNotFound
+	}
+
+	delete(r.products, id)
+	return nil
+}
+
+func (r *productRepository) List(ctx context.Context) ([]*entity.Product, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	products := make([]*entity.Product, 0, len(r.products))
+	for _, p := range r.products {
 		products = append(products, p)
 	}
-
 	return products, nil
-}
-
-func (r *ProductRepository) DeleteProduct(id int) error {
-
-	_, err := r.DB.Exec(`DELETE FROM products WHERE id = $1`, id)
-
-	return err
-}
-
-func (r *ProductRepository) UpdateProduct(product *entity.Product) error {
-
-	query := `
-	UPDATE products
-	SET name=$1, sku=$2, price=$3, description=$4, stock=$5
-	WHERE id=$6
-	`
-
-	_, err := r.DB.Exec(
-		query,
-		product.Name,
-		product.SKU,
-		product.Price,
-		product.Description,
-		product.Stock,
-		product.ID,
-	)
-
-	return err
-}
-
-func (r *ProductRepository) GetBySKU(sku string) (*entity.Product, error) {
-
-	row := r.DB.QueryRow(
-		`SELECT id, name, sku, price, description, stock FROM products WHERE sku=$1`,
-		sku,
-	)
-
-	var p entity.Product
-
-	err := row.Scan(
-		&p.ID,
-		&p.Name,
-		&p.SKU,
-		&p.Price,
-		&p.Description,
-		&p.Stock,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &p, nil
 }

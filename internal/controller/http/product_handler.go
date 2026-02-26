@@ -26,7 +26,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.CreateProduct(&product); err != nil {
+	if err := h.service.CreateProduct(r.Context(), &product); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -36,9 +36,8 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(product)
 }
 
-func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := h.service.GetProducts()
-
+func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
+	products, err := h.service.GetProducts(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -48,9 +47,26 @@ func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(products)
 }
 
+func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
+	idParam := strings.TrimPrefix(r.URL.Path, "/products/get/")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.service.GetProductByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(product)
+}
+
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	// Expects URL pattern: /products/{id}
-	idParam := strings.TrimPrefix(r.URL.Path, "/products/")
+	idParam := strings.TrimPrefix(r.URL.Path, "/products/update/")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "invalid product id", http.StatusBadRequest)
@@ -65,7 +81,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	product.ID = id
 
-	if err := h.service.UpdateProduct(&product); err != nil {
+	if err := h.service.UpdateProduct(r.Context(), &product); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -75,15 +91,14 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
-	// Expects URL pattern: /products/{id}
-	idParam := strings.TrimPrefix(r.URL.Path, "/products/")
+	idParam := strings.TrimPrefix(r.URL.Path, "/products/delete/")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "invalid product id", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.service.DeleteProduct(id); err != nil {
+	if err := h.service.DeleteProduct(r.Context(), id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
