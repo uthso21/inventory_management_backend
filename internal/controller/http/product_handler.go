@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/uthso21/inventory_management_backend/internal/entity"
-	"github.com/uthso21/inventory_management_backend/internal/service"
+	usecases "github.com/uthso21/inventory_management_backend/internal/service"
 )
 
 type ProductHandler struct {
-	service *service.ProductService
+	service *usecases.ProductService
 }
 
-func NewProductHandler(service *service.ProductService) *ProductHandler {
+func NewProductHandler(service *usecases.ProductService) *ProductHandler {
 	return &ProductHandler{service: service}
 }
 
