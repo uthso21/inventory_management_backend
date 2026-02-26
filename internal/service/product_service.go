@@ -14,6 +14,7 @@ type ProductService interface {
 	UpdateProduct(ctx context.Context, product *entity.Product) error
 	DeleteProduct(ctx context.Context, id int) error
 	ListProducts(ctx context.Context) ([]*entity.Product, error)
+	GetLowStockProducts(ctx context.Context) ([]*entity.Product, error)
 }
 
 // productService is the concrete implementation of ProductService
@@ -73,4 +74,20 @@ func (s *productService) DeleteProduct(ctx context.Context, id int) error {
 
 func (s *productService) ListProducts(ctx context.Context) ([]*entity.Product, error) {
 	return s.repo.List(ctx)
+}
+
+func (s *productService) GetLowStockProducts(ctx context.Context) ([]*entity.Product, error) {
+	products, err := s.repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var lowStock []*entity.Product
+	for _, p := range products {
+		if p.Stock <= p.ReorderLevel {
+			lowStock = append(lowStock, p)
+		}
+	}
+
+	return lowStock, nil
 }

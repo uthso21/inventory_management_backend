@@ -53,6 +53,7 @@ func main() {
 	http.HandleFunc("/products/get", productHandler.GetProduct)
 	http.HandleFunc("/products/update", productHandler.UpdateProduct)
 	http.HandleFunc("/products/delete", productHandler.DeleteProduct)
+	http.HandleFunc("/products/low-stock", productHandler.GetLowStockProducts)
 
 	// Start server
 	port := ":8080"
