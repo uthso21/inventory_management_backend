@@ -7,34 +7,70 @@ import (
 	"github.com/uthso21/inventory_management_backend/internal/repository"
 )
 
-type ProductService struct {
+// ProductService defines the interface for product business logic
+type ProductService interface {
+	CreateProduct(ctx context.Context, product *entity.Product) error
+	GetProduct(ctx context.Context, id int) (*entity.Product, error)
+	UpdateProduct(ctx context.Context, product *entity.Product) error
+	DeleteProduct(ctx context.Context, id int) error
+	ListProducts(ctx context.Context) ([]*entity.Product, error)
+}
+
+// productService is the concrete implementation of ProductService
+type productService struct {
 	repo repository.ProductRepository
 }
 
-func NewProductService(repo repository.ProductRepository) *ProductService {
-	return &ProductService{repo: repo}
+// NewProductService creates a new instance of ProductService
+func NewProductService(repo repository.ProductRepository) ProductService {
+	return &productService{repo: repo}
 }
 
-func (s *ProductService) CreateProduct(ctx context.Context, product *entity.Product) error {
+func (s *productService) CreateProduct(ctx context.Context, product *entity.Product) error {
+	if product.Name == "" || product.SKU == "" {
+		return ErrInvalidInput
+	}
+
 	existing, _ := s.repo.GetBySKU(ctx, product.SKU)
 	if existing != nil {
 		return repository.ErrProductExists
 	}
+
 	return s.repo.Create(ctx, product)
 }
 
-func (s *ProductService) GetProducts(ctx context.Context) ([]*entity.Product, error) {
-	return s.repo.List(ctx)
-}
+func (s *productService) GetProduct(ctx context.Context, id int) (*entity.Product, error) {
+	if id <= 0 {
+		return nil, ErrInvalidInput
+	}
 
-func (s *ProductService) GetProductByID(ctx context.Context, id int) (*entity.Product, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *ProductService) UpdateProduct(ctx context.Context, product *entity.Product) error {
+func (s *productService) UpdateProduct(ctx context.Context, product *entity.Product) error {
+	if product.ID <= 0 {
+		return ErrInvalidInput
+	}
+
+	existing, err := s.repo.GetByID(ctx, product.ID)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return repository.ErrProductNotFound
+	}
+
 	return s.repo.Update(ctx, product)
 }
 
-func (s *ProductService) DeleteProduct(ctx context.Context, id int) error {
+func (s *productService) DeleteProduct(ctx context.Context, id int) error {
+	if id <= 0 {
+		return ErrInvalidInput
+	}
+
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *productService) ListProducts(ctx context.Context) ([]*entity.Product, error) {
+	return s.repo.List(ctx)
 }

@@ -4,17 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/uthso21/inventory_management_backend/internal/entity"
 	usecases "github.com/uthso21/inventory_management_backend/internal/service"
 )
 
 type ProductHandler struct {
-	service *usecases.ProductService
+	service usecases.ProductService
 }
 
-func NewProductHandler(service *usecases.ProductService) *ProductHandler {
+func NewProductHandler(service usecases.ProductService) *ProductHandler {
 	return &ProductHandler{service: service}
 }
 
@@ -37,7 +36,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := h.service.GetProducts(r.Context())
+	products, err := h.service.ListProducts(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -48,14 +47,14 @@ func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
-	idParam := strings.TrimPrefix(r.URL.Path, "/products/get/")
+	idParam := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "invalid product id", http.StatusBadRequest)
 		return
 	}
 
-	product, err := h.service.GetProductByID(r.Context(), id)
+	product, err := h.service.GetProduct(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -66,7 +65,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	idParam := strings.TrimPrefix(r.URL.Path, "/products/update/")
+	idParam := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "invalid product id", http.StatusBadRequest)
@@ -91,7 +90,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
-	idParam := strings.TrimPrefix(r.URL.Path, "/products/delete/")
+	idParam := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "invalid product id", http.StatusBadRequest)
@@ -103,6 +102,5 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "product deleted"})
+	w.WriteHeader(http.StatusNoContent)
 }
