@@ -7,25 +7,40 @@ import (
 	httpHandler "github.com/uthso21/inventory_management_backend/internal/controller/http"
 	"github.com/uthso21/inventory_management_backend/internal/database"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
-	usecases "github.com/uthso21/inventory_management_backend/internal/service"
+	"github.com/uthso21/inventory_management_backend/internal/service"
 )
 
 func main() {
 
+	// =========================
 	// Connect to Database FIRST
+	// =========================
 	database.Connect()
 
-	// -------- Warehouse Setup --------
+	// =========================
+	// Warehouse Setup
+	// =========================
 	warehouseRepo := repository.NewWarehouseRepository()
-	warehouseService := usecases.NewWarehouseService(warehouseRepo)
+	warehouseService := service.NewWarehouseService(warehouseRepo)
 	warehouseHandler := httpHandler.NewWarehouseHandler(warehouseService)
 
-	// -------- User Setup --------
+	// =========================
+	// User Setup
+	// =========================
 	userRepo := repository.NewUserRepository()
-	userService := usecases.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo)
 	userHandler := httpHandler.NewUserHandler(userService)
 
-	// -------- Routes --------
+	// =========================
+	// Purchase Setup
+	// =========================
+	purchaseRepo := repository.NewPurchaseRepository()
+	purchaseService := service.NewPurchaseService(purchaseRepo)
+	purchaseHandler := httpHandler.NewPurchaseHandler(purchaseService)
+
+	// =========================
+	// Routes
+	// =========================
 
 	// Users
 	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +58,9 @@ func main() {
 	http.HandleFunc("/users/update", userHandler.UpdateUser)
 	http.HandleFunc("/users/delete", userHandler.DeleteUser)
 
+	// Purchases
+	http.HandleFunc("/purchases", purchaseHandler.CreatePurchase)
+
 	// Warehouses
 	http.HandleFunc("/warehouses", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -59,9 +77,12 @@ func main() {
 		}
 	})
 
-	// Start server
+	// =========================
+	// Start Server
+	// =========================
 	port := ":8080"
 	log.Printf("Server starting on port %s", port)
+
 	if err := http.ListenAndServe(port, nil); err != nil {
 		log.Fatal(err)
 	}
