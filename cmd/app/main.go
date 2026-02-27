@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	httpHandler "github.com/uthso21/inventory_management_backend/internal/controller/http"
+	"github.com/uthso21/inventory_management_backend/internal/database"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
 	"github.com/uthso21/inventory_management_backend/internal/service"
 )
@@ -12,17 +13,27 @@ import (
 func main() {
 
 	// =========================
-	// User Module Initialization
+	// Connect to Database FIRST
 	// =========================
+	database.Connect()
 
+	// =========================
+	// Warehouse Setup
+	// =========================
+	warehouseRepo := repository.NewWarehouseRepository()
+	warehouseService := service.NewWarehouseService(warehouseRepo)
+	warehouseHandler := httpHandler.NewWarehouseHandler(warehouseService)
+
+	// =========================
+	// User Setup
+	// =========================
 	userRepo := repository.NewUserRepository()
 	userService := service.NewUserService(userRepo)
 	userHandler := httpHandler.NewUserHandler(userService)
 
 	// =========================
-	// Purchase Module Initialization
+	// Purchase Setup
 	// =========================
-
 	purchaseRepo := repository.NewPurchaseRepository()
 	purchaseService := service.NewPurchaseService(purchaseRepo)
 	purchaseHandler := httpHandler.NewPurchaseHandler(purchaseService)
@@ -31,7 +42,7 @@ func main() {
 	// Routes
 	// =========================
 
-	// User routes
+	// Users
 	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -47,13 +58,28 @@ func main() {
 	http.HandleFunc("/users/update", userHandler.UpdateUser)
 	http.HandleFunc("/users/delete", userHandler.DeleteUser)
 
-	// Purchase route
+	// Purchases
 	http.HandleFunc("/purchases", purchaseHandler.CreatePurchase)
+
+	// Warehouses
+	http.HandleFunc("/warehouses", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			warehouseHandler.ListWarehouses(w, r)
+		case http.MethodPost:
+			warehouseHandler.CreateWarehouse(w, r)
+		case http.MethodPut:
+			warehouseHandler.UpdateWarehouse(w, r)
+		case http.MethodDelete:
+			warehouseHandler.DeleteWarehouse(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	// =========================
 	// Start Server
 	// =========================
-
 	port := ":8080"
 	log.Printf("Server starting on port %s", port)
 
