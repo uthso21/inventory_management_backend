@@ -8,7 +8,7 @@ import (
 )
 
 type PurchaseService interface {
-	CreatePurchase(ctx context.Context, purchase *entities.Purchase) error
+	CreatePurchase(ctx context.Context, purchase *entities.Purchase) (int64, error)
 }
 
 type purchaseService struct {
@@ -21,7 +21,10 @@ func NewPurchaseService(purchaseRepo repository.PurchaseRepository) PurchaseServ
 	}
 }
 
-func (s *purchaseService) CreatePurchase(ctx context.Context, purchase *entities.Purchase) error {
-	// এখানে future এ validation, business logic যোগ করা যাবে
-	return s.purchaseRepo.Create(ctx, purchase)
+func (s *purchaseService) CreatePurchase(ctx context.Context, purchase *entities.Purchase) (int64, error) {
+	purchaseID, err := s.purchaseRepo.Create(ctx, purchase)
+	if err != nil {
+		return 0, err
+	}
+	return purchaseID, nil
 }
