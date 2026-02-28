@@ -8,7 +8,7 @@ import (
 )
 
 type PurchaseRepository interface {
-	Create(ctx context.Context, purchase *entities.Purchase) error
+	Create(ctx context.Context, purchase *entities.Purchase) (int64, error)
 }
 
 type purchaseRepository struct {
@@ -22,12 +22,12 @@ func NewPurchaseRepository() PurchaseRepository {
 	}
 }
 
-func (r *purchaseRepository) Create(ctx context.Context, purchase *entities.Purchase) error {
+func (r *purchaseRepository) Create(ctx context.Context, purchase *entities.Purchase) (int64, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	purchase.ID = len(r.purchases) + 1
 	r.purchases = append(r.purchases, *purchase)
 
-	return nil
+	return int64(purchase.ID), nil
 }

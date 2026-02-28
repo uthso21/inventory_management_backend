@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	entities "github.com/uthso21/inventory_management_backend/internal/entity"
@@ -12,6 +13,11 @@ type PurchaseHandler struct {
 	purchaseService service.PurchaseService
 }
 
+type createPurchaseResponse struct {
+	PurchaseID int64  `json:"purchase_id"`
+	Status     string `json:"status"`
+}
+
 func NewPurchaseHandler(purchaseService service.PurchaseService) *PurchaseHandler {
 	return &PurchaseHandler{
 		purchaseService: purchaseService,
@@ -19,19 +25,28 @@ func NewPurchaseHandler(purchaseService service.PurchaseService) *PurchaseHandle
 }
 
 func (h *PurchaseHandler) CreatePurchase(w http.ResponseWriter, r *http.Request) {
-
 	var purchase entities.Purchase
 
 	if err := json.NewDecoder(r.Body).Decode(&purchase); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.purchaseService.CreatePurchase(r.Context(), &purchase); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	purchaseID, err := h.purchaseService.CreatePurchase(r.Context(), &purchase)
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidInput) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(purchase)
+	_ = json.NewEncoder(w).Encode(createPurchaseResponse{
+		PurchaseID: purchaseID,
+		Status:     "success",
+	})
 }
