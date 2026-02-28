@@ -371,8 +371,7 @@ def demand_forecast_tool(ctx: ProductContext, market_trends: dict = None) -> Too
         f"{forecast_weekly:.1f} units/week with a {abs(trend_pct):.1f}% {trend_direction} trend. "
     )
     if market_insight:
-        explanation += f"{market_insight} Adjusted forecast: {adjusted_forecast:.1f} units/week. "
-    explanation += f"Confidence: {data['confidence']*100:.0f}%."
+        explanation += f"{market_insight} Adjusted forecast: {adjusted_forecast:.1f} units/week."
 
     return ToolResult(
         tool_name="demand_forecast",
@@ -458,15 +457,14 @@ def smart_reorder_tool(ctx: ProductContext, market_trends: dict = None) -> ToolR
         explanation = (
             f"Current stock ({current_stock} units) covers only {stock_covers_days:.0f} days. "
             f"With {lead_time_days}-day lead time and {daily_demand:.0f} units/day demand, "
-            f"recommend ordering {int(reorder_qty)} units. Urgency: {urgency}. "
-            f"Confidence: {confidence*100:.0f}%. "
+            f"recommend ordering {int(reorder_qty)} units. Urgency: {urgency}."
         )
         if trend_note:
-            explanation += trend_note
+            explanation += f" {trend_note}"
     else:
         explanation = (
             f"Stock levels healthy at {current_stock} units, covering {stock_covers_days:.0f} days. "
-            f"No reorder needed. Confidence: {confidence*100:.0f}%."
+            f"No reorder needed."
         )
 
     return ToolResult(
@@ -563,26 +561,23 @@ def pricelist_optimize_tool(ctx: ProductContext, market_trends: dict = None) -> 
     if suggested_action == "no_change":
         explanation = (
             f"Item moving well with only {days_in_inventory} days in inventory. "
-            f"Margin {margin_current:.1f}% healthy. No change needed. "
-            f"Confidence: {confidence*100:.0f}%."
+            f"Margin {margin_current:.1f}% healthy. No change needed."
         )
     elif suggested_action == "bundle":
         explanation = (
             f"Item has been in inventory for {days_in_inventory} days. "
-            f"Recommend bundling with {bundle_partner} to increase turnover. "
-            f"Confidence: {confidence*100:.0f}%."
+            f"Recommend bundling with {bundle_partner} to increase turnover."
         )
     else:
         explanation = (
             f"Aged {days_in_inventory} days in inventory. "
             f"Recommend {markdown_pct}% markdown (${current_price:.2f} → ${new_price:.2f}). "
-            f"Margin: {margin_current:.1f}% → {margin_new:.1f}%. "
-            f"Confidence: {confidence*100:.0f}%. "
+            f"Margin: {margin_current:.1f}% → {margin_new:.1f}%."
         )
         if bundle_partner:
-            explanation += f"Or bundle with {bundle_partner}. "
+            explanation += f" Or bundle with {bundle_partner}."
         if market_note:
-            explanation += market_note
+            explanation += f" {market_note}"
 
     return ToolResult(
         tool_name="pricelist_optimize",

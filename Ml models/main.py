@@ -46,6 +46,8 @@ class ToolResultResponse(BaseModel):
     success: bool
     data: dict
     explanation: str
+    confidence: float  # Confidence score (0.0 - 1.0) for this prediction
+    model_used: str  # Model/algorithm used for this prediction
     error: Optional[str] = None
 
 
@@ -128,6 +130,8 @@ def agent_endpoint(request: AgentRequest):
                 success=r.success,
                 data=r.data,
                 explanation=r.explanation,
+                confidence=r.data.get("confidence", 0.0),
+                model_used=r.data.get("model_used", "unknown"),
                 error=r.error,
             )
             for r in response.results

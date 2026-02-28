@@ -44,6 +44,8 @@ type ToolResult struct {
 	Success     bool                   `json:"success"`
 	Data        map[string]interface{} `json:"data"`
 	Explanation string                 `json:"explanation"`
+	Confidence  float64                `json:"confidence"`   // Confidence score (0.0 - 1.0) for this prediction
+	ModelUsed   string                 `json:"model_used"`   // Model/algorithm used for this prediction
 	Error       *string                `json:"error,omitempty"`
 }
 
