@@ -13,6 +13,7 @@ type WarehouseRepository interface {
 	List(ctx context.Context) ([]*entities.Warehouse, error)
 	Update(ctx context.Context, warehouse *entities.Warehouse) error
 	Delete(ctx context.Context, id int) error
+	ExistsByID(ctx context.Context, id int) (bool, error)
 }
 
 type warehouseRepository struct{}
@@ -132,4 +133,16 @@ func (r *warehouseRepository) Delete(ctx context.Context, id int) error {
 	}
 
 	return nil
+}
+
+func (r *warehouseRepository) ExistsByID(ctx context.Context, id int) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM warehouses WHERE id = $1)`
+
+	var exists bool
+	err := database.DB.QueryRowContext(ctx, query, id).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check warehouse existence: %w", err)
+	}
+
+	return exists, nil
 }
