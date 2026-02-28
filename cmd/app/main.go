@@ -4,8 +4,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/joho/godotenv"
 	httpHandler "github.com/uthso21/inventory_management_backend/internal/controller/http"
 	"github.com/uthso21/inventory_management_backend/internal/database"
+	"github.com/uthso21/inventory_management_backend/internal/middleware"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
 	"github.com/uthso21/inventory_management_backend/internal/service"
 )

@@ -21,22 +21,24 @@ func NewUserHandler(userService usecases.UserService) *UserHandler {
 	}
 }
 
-// CreateUser handles POST /users
+// CreateUser handles POST /users (admin only — route protected in main.go)
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var user entities.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+	var req entities.RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request payload")
 		return
 	}
 
-	if err := h.userService.CreateUser(r.Context(), &user); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := h.userService.CreateUser(r.Context(), &req); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(map[string]string{"message": "user created"})
 }
+
 
 // GetUser handles GET /users/{id}
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
