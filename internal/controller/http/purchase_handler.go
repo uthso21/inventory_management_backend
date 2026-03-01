@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	entities "github.com/uthso21/inventory_management_backend/internal/entity"
@@ -10,6 +11,11 @@ import (
 
 type PurchaseHandler struct {
 	purchaseService service.PurchaseService
+}
+
+type createPurchaseResponse struct {
+	PurchaseID int64  `json:"purchase_id"`
+	Status     string `json:"status"`
 }
 
 func NewPurchaseHandler(purchaseService service.PurchaseService) *PurchaseHandler {

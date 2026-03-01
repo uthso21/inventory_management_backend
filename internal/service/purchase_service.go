@@ -14,12 +14,17 @@ type PurchaseService interface {
 }
 
 type purchaseService struct {
-	purchaseRepo repository.PurchaseRepository
+	purchaseRepo  repository.PurchaseRepository
+	warehouseRepo repository.WarehouseRepository
 }
 
-func NewPurchaseService(purchaseRepo repository.PurchaseRepository) PurchaseService {
+func NewPurchaseService(
+	purchaseRepo repository.PurchaseRepository,
+	warehouseRepo repository.WarehouseRepository,
+) PurchaseService {
 	return &purchaseService{
-		purchaseRepo: purchaseRepo,
+		purchaseRepo:  purchaseRepo,
+		warehouseRepo: warehouseRepo,
 	}
 }
 
