@@ -19,7 +19,6 @@ func NewPurchaseHandler(purchaseService service.PurchaseService) *PurchaseHandle
 }
 
 func (h *PurchaseHandler) CreatePurchase(w http.ResponseWriter, r *http.Request) {
-
 	var purchase entities.Purchase
 
 	if err := json.NewDecoder(r.Body).Decode(&purchase); err != nil {
@@ -27,11 +26,14 @@ func (h *PurchaseHandler) CreatePurchase(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.purchaseService.CreatePurchase(r.Context(), &purchase); err != nil {
+	purchaseID, err := h.purchaseService.CreatePurchase(r.Context(), &purchase)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	purchase.ID = int(purchaseID)
+
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(purchase)
+	_ = json.NewEncoder(w).Encode(purchase)
 }
