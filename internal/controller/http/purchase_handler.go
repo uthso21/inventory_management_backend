@@ -34,19 +34,14 @@ func (h *PurchaseHandler) CreatePurchase(w http.ResponseWriter, r *http.Request)
 
 	purchaseID, err := h.purchaseService.CreatePurchase(r.Context(), &purchase)
 	if err != nil {
-		if errors.Is(err, service.ErrInvalidInput) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		// service validation or DB constraint fail -> 400
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	purchase.ID = int(purchaseID)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(createPurchaseResponse{
-		PurchaseID: purchaseID,
-		Status:     "success",
-	})
+	_ = json.NewEncoder(w).Encode(purchase)
 }
