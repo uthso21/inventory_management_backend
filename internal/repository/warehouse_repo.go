@@ -114,6 +114,8 @@ func (r *warehouseRepository) Update(ctx context.Context, warehouse *entities.Wa
 	return nil
 }
 
+// -------------------- DELETE --------------------
+
 func (r *warehouseRepository) Delete(ctx context.Context, id int) error {
 
 	query := `DELETE FROM warehouses WHERE id = $1`

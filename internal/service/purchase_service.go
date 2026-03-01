@@ -13,7 +13,7 @@ var (
 )
 
 type PurchaseService interface {
-	CreatePurchase(ctx context.Context, purchase *entities.Purchase) error
+	CreatePurchase(ctx context.Context, purchase *entities.Purchase) (int64, error)
 }
 
 type purchaseService struct {
@@ -31,14 +31,18 @@ func NewPurchaseService(
 	}
 }
 
-func (s *purchaseService) CreatePurchase(ctx context.Context, purchase *entities.Purchase) error {
+func (s *purchaseService) CreatePurchase(ctx context.Context, purchase *entities.Purchase) (int64, error) {
 	warehouseExists, err := s.warehouseRepo.ExistsByID(ctx, purchase.WarehouseID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if !warehouseExists {
-		return ErrWarehouseNotFound
+		return 0, ErrWarehouseNotFound
 	}
 
-	return s.purchaseRepo.Create(ctx, purchase)
+	purchaseID, err := s.purchaseRepo.Create(ctx, purchase)
+	if err != nil {
+		return 0, err
+	}
+	return purchaseID, nil
 }

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/joho/godotenv"
 	httpHandler "github.com/uthso21/inventory_management_backend/internal/controller/http"
 	"github.com/uthso21/inventory_management_backend/internal/database"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
@@ -11,79 +12,31 @@ import (
 )
 
 func main() {
+	_ = godotenv.Load()
 
-	// =========================
-	// Connect to Database FIRST
-	// =========================
+	// DB init
 	database.Connect()
 
-	// =========================
-	// Warehouse Setup
-	// =========================
-	warehouseRepo := repository.NewWarehouseRepository()
-	warehouseService := service.NewWarehouseService(warehouseRepo)
-	warehouseHandler := httpHandler.NewWarehouseHandler(warehouseService)
-
-	// =========================
-	// User Setup
-	// =========================
+	// Repositories
 	userRepo := repository.NewUserRepository()
-	userService := service.NewUserService(userRepo)
-	userHandler := httpHandler.NewUserHandler(userService)
-
-	// =========================
-	// Purchase Setup
-	// =========================
+	warehouseRepo := repository.NewWarehouseRepository()
 	purchaseRepo := repository.NewPurchaseRepository()
+
+	// Services
+	userService := service.NewUserService(userRepo)
+	warehouseService := service.NewWarehouseService(warehouseRepo)
 	purchaseService := service.NewPurchaseService(purchaseRepo, warehouseRepo)
+
+	// Handlers
+	userHandler := httpHandler.NewUserHandler(userService)
+	warehouseHandler := httpHandler.NewWarehouseHandler(warehouseService)
 	purchaseHandler := httpHandler.NewPurchaseHandler(purchaseService)
 
-	// =========================
 	// Routes
-	// =========================
-
-	// Users
-	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			userHandler.ListUsers(w, r)
-		case http.MethodPost:
-			userHandler.CreateUser(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
-
-	http.HandleFunc("/users/get", userHandler.GetUser)
-	http.HandleFunc("/users/update", userHandler.UpdateUser)
-	http.HandleFunc("/users/delete", userHandler.DeleteUser)
-
-	// Purchases
+	http.HandleFunc("/users", userHandler.CreateUser)
+	http.HandleFunc("/warehouses", warehouseHandler.CreateWarehouse)
 	http.HandleFunc("/purchases", purchaseHandler.CreatePurchase)
 
-	// Warehouses
-	http.HandleFunc("/warehouses", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			warehouseHandler.ListWarehouses(w, r)
-		case http.MethodPost:
-			warehouseHandler.CreateWarehouse(w, r)
-		case http.MethodPut:
-			warehouseHandler.UpdateWarehouse(w, r)
-		case http.MethodDelete:
-			warehouseHandler.DeleteWarehouse(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
-
-	// =========================
-	// Start Server
-	// =========================
-	port := ":8080"
-	log.Printf("Server starting on port %s", port)
-
-	if err := http.ListenAndServe(port, nil); err != nil {
-		log.Fatal(err)
-	}
+	log.Println("Server running on :8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
