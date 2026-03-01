@@ -114,6 +114,8 @@ func (r *warehouseRepository) Update(ctx context.Context, warehouse *entities.Wa
 	return nil
 }
 
+// -------------------- DELETE --------------------
+
 func (r *warehouseRepository) Delete(ctx context.Context, id int) error {
 
 	query := `DELETE FROM warehouses WHERE id = $1`
@@ -135,14 +137,14 @@ func (r *warehouseRepository) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
+// -------------------- EXISTS --------------------
+
 func (r *warehouseRepository) ExistsByID(ctx context.Context, id int) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM warehouses WHERE id = $1)`
-
 	var exists bool
 	err := database.DB.QueryRowContext(ctx, query, id).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("failed to check warehouse existence: %w", err)
 	}
-
 	return exists, nil
 }
