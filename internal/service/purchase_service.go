@@ -9,11 +9,14 @@ import (
 )
 
 var (
-	ErrWarehouseNotFound = errors.New("warehouse not found")
+	ErrWarehouseNotFound  = errors.New("warehouse not found")
+	ErrInvalidQuantity    = errors.New("quantity must be greater than zero")
+	ErrEmptyPurchaseItems = errors.New("purchase items are required")
 )
 
 type PurchaseService interface {
 	CreatePurchase(ctx context.Context, purchase *entities.Purchase) (int64, error)
+	ValidatePurchaseItems(items []entities.PurchaseItem) error
 }
 
 type purchaseService struct {
@@ -32,6 +35,18 @@ func NewPurchaseService(
 		warehouseRepo: warehouseRepo,
 		productRepo:   productRepo,
 	}
+}
+
+func (s *purchaseService) ValidatePurchaseItems(items []entities.PurchaseItem) error {
+	if len(items) == 0 {
+		return ErrEmptyPurchaseItems
+	}
+	for _, item := range items {
+		if item.Quantity <= 0 {
+			return ErrInvalidQuantity
+		}
+	}
+	return nil
 }
 
 func (s *purchaseService) CreatePurchase(ctx context.Context, purchase *entities.Purchase) (int64, error) {
