@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
-	"sync"
 
+	"github.com/uthso21/inventory_management_backend/internal/database"
 	"github.com/uthso21/inventory_management_backend/internal/entity"
 )
 
@@ -13,7 +14,6 @@ var (
 	ErrProductExists   = errors.New("product already exists")
 )
 
-// ProductRepository defines the interface for product data access
 type ProductRepository interface {
 	Create(ctx context.Context, product *entity.Product) error
 	GetByID(ctx context.Context, id int) (*entity.Product, error)
@@ -23,92 +23,120 @@ type ProductRepository interface {
 	List(ctx context.Context) ([]*entity.Product, error)
 }
 
-// productRepository is the concrete implementation of ProductRepository
 type productRepository struct {
-	mu       sync.RWMutex
-	products map[int]*entity.Product
-	nextID   int
+	db *sql.DB
 }
 
-// NewProductRepository creates a new instance of ProductRepository
 func NewProductRepository() ProductRepository {
-	return &productRepository{
-		products: make(map[int]*entity.Product),
-		nextID:   1,
-	}
+	return &productRepository{db: database.DB}
 }
 
 func (r *productRepository) Create(ctx context.Context, product *entity.Product) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	// Check for duplicate SKU
-	for _, p := range r.products {
-		if p.SKU == product.SKU {
-			return ErrProductExists
-		}
-	}
-
-	product.ID = r.nextID
-	r.nextID++
-	r.products[product.ID] = product
-	return nil
+	query := `
+		INSERT INTO products (name, sku, price, description, stock, reorder_level)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
+	`
+	return r.db.QueryRowContext(ctx, query,
+		product.Name,
+		product.SKU,
+		product.Price,
+		product.Description,
+		product.Stock,
+		product.ReorderLevel,
+	).Scan(&product.ID)
 }
 
 func (r *productRepository) GetByID(ctx context.Context, id int) (*entity.Product, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	p, ok := r.products[id]
-	if !ok {
+	query := `SELECT id, name, sku, price, description, stock, reorder_level FROM products WHERE id=$1`
+	var p entity.Product
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
+		&p.ID, &p.Name, &p.SKU, &p.Price, &p.Description, &p.Stock, &p.ReorderLevel,
+	)
+	if err == sql.ErrNoRows {
 		return nil, ErrProductNotFound
 	}
-	return p, nil
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
 }
 
 func (r *productRepository) GetBySKU(ctx context.Context, sku string) (*entity.Product, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	for _, p := range r.products {
-		if p.SKU == sku {
-			return p, nil
-		}
+	query := `SELECT id, name, sku, price, description, stock, reorder_level FROM products WHERE sku=$1`
+	var p entity.Product
+	err := r.db.QueryRowContext(ctx, query, sku).Scan(
+		&p.ID, &p.Name, &p.SKU, &p.Price, &p.Description, &p.Stock, &p.ReorderLevel,
+	)
+	if err == sql.ErrNoRows {
+		return nil, ErrProductNotFound
 	}
-	return nil, ErrProductNotFound
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
 }
 
 func (r *productRepository) Update(ctx context.Context, product *entity.Product) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if _, ok := r.products[product.ID]; !ok {
+	query := `
+		UPDATE products
+		SET name=$1, sku=$2, price=$3, description=$4, stock=$5, reorder_level=$6
+		WHERE id=$7
+	`
+	res, err := r.db.ExecContext(ctx, query,
+		product.Name,
+		product.SKU,
+		product.Price,
+		product.Description,
+		product.Stock,
+		product.ReorderLevel,
+		product.ID,
+	)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
 		return ErrProductNotFound
 	}
-
-	r.products[product.ID] = product
 	return nil
 }
 
 func (r *productRepository) Delete(ctx context.Context, id int) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if _, ok := r.products[id]; !ok {
+	res, err := r.db.ExecContext(ctx, `DELETE FROM products WHERE id=$1`, id)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
 		return ErrProductNotFound
 	}
-
-	delete(r.products, id)
 	return nil
 }
 
 func (r *productRepository) List(ctx context.Context) ([]*entity.Product, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	query := `SELECT id, name, sku, price, description, stock, reorder_level FROM products`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-	products := make([]*entity.Product, 0, len(r.products))
-	for _, p := range r.products {
-		products = append(products, p)
+	var products []*entity.Product
+	for rows.Next() {
+		var p entity.Product
+		if err := rows.Scan(
+			&p.ID, &p.Name, &p.SKU, &p.Price, &p.Description, &p.Stock, &p.ReorderLevel,
+		); err != nil {
+			return nil, err
+		}
+		products = append(products, &p)
 	}
 	return products, nil
 }
