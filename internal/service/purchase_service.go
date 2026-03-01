@@ -19,15 +19,18 @@ type PurchaseService interface {
 type purchaseService struct {
 	purchaseRepo  repository.PurchaseRepository
 	warehouseRepo repository.WarehouseRepository
+	productRepo   repository.ProductRepository
 }
 
 func NewPurchaseService(
 	purchaseRepo repository.PurchaseRepository,
 	warehouseRepo repository.WarehouseRepository,
+	productRepo repository.ProductRepository,
 ) PurchaseService {
 	return &purchaseService{
 		purchaseRepo:  purchaseRepo,
 		warehouseRepo: warehouseRepo,
+		productRepo:   productRepo,
 	}
 }
 
