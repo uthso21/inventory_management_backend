@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -26,4 +27,8 @@ func Connect() {
 	fmt.Println("✅ Connected to PostgreSQL")
 
 	DB = db
+}
+
+func BeginTx(ctx context.Context) (*sql.Tx, error) {
+	return DB.BeginTx(ctx, nil)
 }

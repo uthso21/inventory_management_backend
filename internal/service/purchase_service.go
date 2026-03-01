@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/uthso21/inventory_management_backend/internal/database"
 	entities "github.com/uthso21/inventory_management_backend/internal/entity"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
 )
@@ -22,6 +23,21 @@ func NewPurchaseService(purchaseRepo repository.PurchaseRepository) PurchaseServ
 }
 
 func (s *purchaseService) CreatePurchase(ctx context.Context, purchase *entities.Purchase) (int64, error) {
-	// future: validation/business logic যোগ হবে
-	return s.purchaseRepo.Create(ctx, purchase)
+	tx, err := database.BeginTx(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	purchaseID, err := s.purchaseRepo.CreateWithTx(ctx, tx, purchase)
+	if err != nil {
+		_ = tx.Rollback()
+		return 0, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		_ = tx.Rollback()
+		return 0, err
+	}
+
+	return purchaseID, nil
 }
