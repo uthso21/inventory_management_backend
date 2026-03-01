@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	entities "github.com/uthso21/inventory_management_backend/internal/entity"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
+)
+
+var (
+	ErrWarehouseNotFound = errors.New("warehouse not found")
 )
 
 type PurchaseService interface {
@@ -28,12 +32,12 @@ func NewPurchaseService(
 }
 
 func (s *purchaseService) CreatePurchase(ctx context.Context, purchase *entities.Purchase) (int64, error) {
-	exists, err := s.warehouseRepo.ExistsByID(ctx, purchase.WarehouseID)
+	warehouseExists, err := s.warehouseRepo.ExistsByID(ctx, purchase.WarehouseID)
 	if err != nil {
 		return 0, err
 	}
-	if !exists {
-		return 0, fmt.Errorf("warehouse not found")
+	if !warehouseExists {
+		return 0, ErrWarehouseNotFound
 	}
 
 	purchaseID, err := s.purchaseRepo.Create(ctx, purchase)
