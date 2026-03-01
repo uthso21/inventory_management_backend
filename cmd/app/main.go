@@ -35,7 +35,7 @@ func main() {
 	// Purchase Setup
 	// =========================
 	purchaseRepo := repository.NewPurchaseRepository()
-	purchaseService := service.NewPurchaseService(purchaseRepo)
+	purchaseService := service.NewPurchaseService(purchaseRepo, warehouseRepo)
 	purchaseHandler := httpHandler.NewPurchaseHandler(purchaseService)
 
 	// =========================

@@ -2,9 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	entities "github.com/uthso21/inventory_management_backend/internal/entity"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
+)
+
+var (
+	ErrWarehouseNotFound = errors.New("warehouse not found")
 )
 
 type PurchaseService interface {
@@ -12,16 +17,28 @@ type PurchaseService interface {
 }
 
 type purchaseService struct {
-	purchaseRepo repository.PurchaseRepository
+	purchaseRepo  repository.PurchaseRepository
+	warehouseRepo repository.WarehouseRepository
 }
 
-func NewPurchaseService(purchaseRepo repository.PurchaseRepository) PurchaseService {
+func NewPurchaseService(
+	purchaseRepo repository.PurchaseRepository,
+	warehouseRepo repository.WarehouseRepository,
+) PurchaseService {
 	return &purchaseService{
-		purchaseRepo: purchaseRepo,
+		purchaseRepo:  purchaseRepo,
+		warehouseRepo: warehouseRepo,
 	}
 }
 
 func (s *purchaseService) CreatePurchase(ctx context.Context, purchase *entities.Purchase) error {
-	// এখানে future এ validation, business logic যোগ করা যাবে
+	warehouseExists, err := s.warehouseRepo.ExistsByID(ctx, purchase.WarehouseID)
+	if err != nil {
+		return err
+	}
+	if !warehouseExists {
+		return ErrWarehouseNotFound
+	}
+
 	return s.purchaseRepo.Create(ctx, purchase)
 }
