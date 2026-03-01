@@ -1,9 +1,9 @@
-package usecases
+package service
 
 import (
 	"context"
 
-	"github.com/uthso21/inventory_management_backend/internal/entity"
+	entity "github.com/uthso21/inventory_management_backend/internal/entity"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
 )
 

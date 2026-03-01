@@ -15,12 +15,12 @@ var (
 )
 
 type ProductRepository interface {
-	Create(ctx context.Context, product *entity.Product) error
-	GetByID(ctx context.Context, id int) (*entity.Product, error)
-	GetBySKU(ctx context.Context, sku string) (*entity.Product, error)
-	Update(ctx context.Context, product *entity.Product) error
+	Create(ctx context.Context, product *entities.Product) error
+	GetByID(ctx context.Context, id int) (*entities.Product, error)
+	GetBySKU(ctx context.Context, sku string) (*entities.Product, error)
+	Update(ctx context.Context, product *entities.Product) error
 	Delete(ctx context.Context, id int) error
-	List(ctx context.Context) ([]*entity.Product, error)
+	List(ctx context.Context) ([]*entities.Product, error)
 }
 
 type productRepository struct {
@@ -31,7 +31,7 @@ func NewProductRepository() ProductRepository {
 	return &productRepository{db: database.DB}
 }
 
-func (r *productRepository) Create(ctx context.Context, product *entity.Product) error {
+func (r *productRepository) Create(ctx context.Context, product *entities.Product) error {
 	query := `
 		INSERT INTO products (name, sku, price, description, stock, reorder_level)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -47,9 +47,9 @@ func (r *productRepository) Create(ctx context.Context, product *entity.Product)
 	).Scan(&product.ID)
 }
 
-func (r *productRepository) GetByID(ctx context.Context, id int) (*entity.Product, error) {
+func (r *productRepository) GetByID(ctx context.Context, id int) (*entities.Product, error) {
 	query := `SELECT id, name, sku, price, description, stock, reorder_level FROM products WHERE id=$1`
-	var p entity.Product
+	var p entities.Product
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&p.ID, &p.Name, &p.SKU, &p.Price, &p.Description, &p.Stock, &p.ReorderLevel,
 	)
@@ -62,9 +62,9 @@ func (r *productRepository) GetByID(ctx context.Context, id int) (*entity.Produc
 	return &p, nil
 }
 
-func (r *productRepository) GetBySKU(ctx context.Context, sku string) (*entity.Product, error) {
+func (r *productRepository) GetBySKU(ctx context.Context, sku string) (*entities.Product, error) {
 	query := `SELECT id, name, sku, price, description, stock, reorder_level FROM products WHERE sku=$1`
-	var p entity.Product
+	var p entities.Product
 	err := r.db.QueryRowContext(ctx, query, sku).Scan(
 		&p.ID, &p.Name, &p.SKU, &p.Price, &p.Description, &p.Stock, &p.ReorderLevel,
 	)
@@ -77,7 +77,7 @@ func (r *productRepository) GetBySKU(ctx context.Context, sku string) (*entity.P
 	return &p, nil
 }
 
-func (r *productRepository) Update(ctx context.Context, product *entity.Product) error {
+func (r *productRepository) Update(ctx context.Context, product *entities.Product) error {
 	query := `
 		UPDATE products
 		SET name=$1, sku=$2, price=$3, description=$4, stock=$5, reorder_level=$6
@@ -120,7 +120,7 @@ func (r *productRepository) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (r *productRepository) List(ctx context.Context) ([]*entity.Product, error) {
+func (r *productRepository) List(ctx context.Context) ([]*entities.Product, error) {
 	query := `SELECT id, name, sku, price, description, stock, reorder_level FROM products`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
@@ -128,9 +128,9 @@ func (r *productRepository) List(ctx context.Context) ([]*entity.Product, error)
 	}
 	defer rows.Close()
 
-	var products []*entity.Product
+	var products []*entities.Product
 	for rows.Next() {
-		var p entity.Product
+		var p entities.Product
 		if err := rows.Scan(
 			&p.ID, &p.Name, &p.SKU, &p.Price, &p.Description, &p.Stock, &p.ReorderLevel,
 		); err != nil {
