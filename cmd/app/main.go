@@ -30,8 +30,7 @@ func main() {
 	// Services
 	userService := service.NewUserService(userRepo)
 	warehouseService := service.NewWarehouseService(warehouseRepo)
-	purchaseService := service.NewPurchaseService(purchaseRepo, warehouseRepo)
-	productService := service.NewProductService(productRepo)
+	purchaseService := service.NewPurchaseService(purchaseRepo, warehouseRepo, productRepo)
 
 	// Handlers
 	userHandler := httpHandler.NewUserHandler(userService)
