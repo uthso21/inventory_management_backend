@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -35,6 +36,8 @@ func Connect() {
 	DB = db
 }
 
+func BeginTx(ctx context.Context) (*sql.Tx, error) {
+	return DB.BeginTx(ctx, nil)
 func getEnv(key, fallback string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
