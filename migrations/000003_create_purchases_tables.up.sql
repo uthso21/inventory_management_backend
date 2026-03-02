@@ -1,5 +1,4 @@
 -- Migration: Create purchases and purchase_items tables
--- Implements tasks #38 and #39
 
 -- Purchases table (Stock IN transactions)
 CREATE TABLE IF NOT EXISTS purchases (

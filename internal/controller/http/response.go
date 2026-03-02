@@ -1,4 +1,4 @@
-package handler
+package http
 
 import (
 	"encoding/json"
@@ -37,9 +37,16 @@ func SendError(w http.ResponseWriter, statusCode int, message string) {
 	})
 }
 
-// HealthCheck handles health check requests
-func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	SendSuccess(w, "Service is healthy", map[string]string{
-		"status": "up",
-	})
+// writeError writes a compact JSON error (used internally by handlers).
+func writeError(w http.ResponseWriter, status int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
+// writeJSON writes any value as JSON (used internally by handlers).
+func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(payload)
 }
