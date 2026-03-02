@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/uthso21/inventory_management_backend/internal/database"
 	entity "github.com/uthso21/inventory_management_backend/internal/entity"
@@ -21,6 +22,8 @@ type ProductRepository interface {
 	Update(ctx context.Context, product *entity.Product) error
 	Delete(ctx context.Context, id int) error
 	List(ctx context.Context) ([]*entity.Product, error)
+	ExistsByID(ctx context.Context, id int) (bool, error)
+	IncrementStockWithTx(ctx context.Context, tx *sql.Tx, productID int, quantity int) error
 }
 
 type productRepository struct{}
@@ -131,4 +134,29 @@ func (r *productRepository) List(ctx context.Context) ([]*entity.Product, error)
 		products = append(products, &p)
 	}
 	return products, rows.Err()
+}
+
+func (r *productRepository) ExistsByID(ctx context.Context, id int) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM products WHERE id = $1)`
+	var exists bool
+	err := database.DB.QueryRowContext(ctx, query, id).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check product existence: %w", err)
+	}
+	return exists, nil
+}
+
+func (r *productRepository) IncrementStockWithTx(ctx context.Context, tx *sql.Tx, productID int, quantity int) error {
+	query := `
+		UPDATE products 
+		SET stock = stock + $1, updated_at = NOW() 
+		WHERE id = $2
+		RETURNING id
+	`
+	var id int
+	err := tx.QueryRowContext(ctx, query, quantity, productID).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrProductNotFound
+	}
+	return err
 }
