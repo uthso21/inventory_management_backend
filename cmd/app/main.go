@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	httpHandler "github.com/uthso21/inventory_management_backend/internal/controller/http"
 	"github.com/uthso21/inventory_management_backend/internal/database"
+	"github.com/uthso21/inventory_management_backend/internal/middleware"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
 	"github.com/uthso21/inventory_management_backend/internal/service"
 )
@@ -26,11 +27,13 @@ func main() {
 	warehouseRepo := repository.NewWarehouseRepository()
 	purchaseRepo := repository.NewPurchaseRepository()
 	productRepo := repository.NewProductRepository()
+	inventoryMovementRepo := repository.NewInventoryMovementRepository()
 
 	// Services
 	userService := service.NewUserService(userRepo)
 	warehouseService := service.NewWarehouseService(warehouseRepo)
-	purchaseService := service.NewPurchaseService(purchaseRepo, warehouseRepo, productRepo)
+	purchaseService := service.NewPurchaseService(purchaseRepo, warehouseRepo, productRepo, inventoryMovementRepo)
+	productService := service.NewProductService(productRepo)
 
 	// Handlers
 	userHandler := httpHandler.NewUserHandler(userService)
@@ -41,7 +44,19 @@ func main() {
 	// Routes
 	http.HandleFunc("/users", userHandler.CreateUser)
 	http.HandleFunc("/warehouses", warehouseHandler.CreateWarehouse)
-	http.HandleFunc("/purchases", purchaseHandler.CreatePurchase)
+
+	// Purchase routes with authentication
+	http.Handle("/purchases", middleware.JWTAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			purchaseHandler.ListPurchases(w, r)
+		case http.MethodPost:
+			purchaseHandler.CreatePurchase(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})))
+	http.Handle("/purchases/get", middleware.JWTAuth(http.HandlerFunc(purchaseHandler.GetPurchase)))
 
 	// Product routes
 	http.HandleFunc("/products", func(w http.ResponseWriter, r *http.Request) {
