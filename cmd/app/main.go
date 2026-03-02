@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/joho/godotenv"
 	httpHandler "github.com/uthso21/inventory_management_backend/internal/controller/http"
 	"github.com/uthso21/inventory_management_backend/internal/database"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
@@ -12,6 +11,8 @@ import (
 )
 
 func main() {
+
+
 
 	// Load env
 	if err := godotenv.Load(); err != nil {
@@ -25,23 +26,32 @@ func main() {
 	userRepo := repository.NewUserRepository()
 	warehouseRepo := repository.NewWarehouseRepository()
 	purchaseRepo := repository.NewPurchaseRepository()
+
+	stockOutRepo := repository.NewStockOutRepository() // NEW
+
 	productRepo := repository.NewProductRepository()
 
 	// Services
 	userService := service.NewUserService(userRepo)
 	warehouseService := service.NewWarehouseService(warehouseRepo)
+	purchaseService := service.NewPurchaseService(purchaseRepo, warehouseRepo)
+	stockOutService := service.NewStockOutService(stockOutRepo) // NEW
+
 	purchaseService := service.NewPurchaseService(purchaseRepo, warehouseRepo, productRepo)
 
 	// Handlers
 	userHandler := httpHandler.NewUserHandler(userService)
 	warehouseHandler := httpHandler.NewWarehouseHandler(warehouseService)
 	purchaseHandler := httpHandler.NewPurchaseHandler(purchaseService)
+	stockOutHandler := httpHandler.NewStockOutHandler(stockOutService) // NEW
+
 	productHandler := httpHandler.NewProductHandler(productService)
 
 	// Routes
 	http.HandleFunc("/users", userHandler.CreateUser)
 	http.HandleFunc("/warehouses", warehouseHandler.CreateWarehouse)
 	http.HandleFunc("/purchases", purchaseHandler.CreatePurchase)
+	http.HandleFunc("/stock-out", stockOutHandler.StockOut)// NEW
 
 	// Product routes
 	http.HandleFunc("/products", func(w http.ResponseWriter, r *http.Request) {
@@ -62,3 +72,4 @@ func main() {
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+
