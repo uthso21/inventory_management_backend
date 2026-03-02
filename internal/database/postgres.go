@@ -17,7 +17,7 @@ func Connect() {
 		getEnv("DB_HOST", "localhost"),
 		getEnv("DB_PORT", "5432"),
 		getEnv("DB_USER", "postgres"),
-		getEnv("DB_PASSWORD", "password"),
+		getEnv("DB_PASSWORD", "1234"),
 		getEnv("DB_NAME", "inventory_db"),
 		getEnv("DB_SSL_MODE", "disable"),
 	)
