@@ -1,5 +1,4 @@
 -- Migration: Add authentication and role-based access fields to users table
--- Run this script once against your PostgreSQL database
 
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS password_hash  TEXT        NOT NULL DEFAULT '',
