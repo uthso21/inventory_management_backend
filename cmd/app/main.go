@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"github.com/joho/godotenv"
 
 	httpHandler "github.com/uthso21/inventory_management_backend/internal/controller/http"
 	"github.com/uthso21/inventory_management_backend/internal/database"
@@ -34,10 +35,9 @@ func main() {
 	// Services
 	userService := service.NewUserService(userRepo)
 	warehouseService := service.NewWarehouseService(warehouseRepo)
-	purchaseService := service.NewPurchaseService(purchaseRepo, warehouseRepo)
 	stockOutService := service.NewStockOutService(stockOutRepo) // NEW
-
 	purchaseService := service.NewPurchaseService(purchaseRepo, warehouseRepo, productRepo)
+	productService := service.NewProductService(productRepo)
 
 	// Handlers
 	userHandler := httpHandler.NewUserHandler(userService)
