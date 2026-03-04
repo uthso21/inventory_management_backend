@@ -2,43 +2,50 @@ package main
 
 import (
 	"log"
-	"net/http"
 
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+
+	"github.com/uthso21/inventory_management_backend/configs"
 	httpHandler "github.com/uthso21/inventory_management_backend/internal/controller/http"
 	"github.com/uthso21/inventory_management_backend/internal/repository"
 	usecases "github.com/uthso21/inventory_management_backend/internal/service"
 )
 
 func main() {
-	// Initialize repository layer
-	userRepo := repository.NewUserRepository()
-
-	// Initialize use case/service layer
-	userService := usecases.NewUserService(userRepo)
-
-	// Initialize HTTP handler layer
-	userHandler := httpHandler.NewUserHandler(userService)
-
-	// Setup routes
-	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			userHandler.ListUsers(w, r)
-		case http.MethodPost:
-			userHandler.CreateUser(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
-
-	http.HandleFunc("/users/get", userHandler.GetUser)
-	http.HandleFunc("/users/update", userHandler.UpdateUser)
-	http.HandleFunc("/users/delete", userHandler.DeleteUser)
-
-	// Start server
-	port := ":8080"
-	log.Printf("Server starting on port %s", port)
-	if err := http.ListenAndServe(port, nil); err != nil {
-		log.Fatal(err)
+	dbConfig := configs.LoadDatabaseConfig()
+	db, err := configs.NewPostgresConnection(dbConfig)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
+	defer db.Close()
+
+	userRepo := repository.NewUserRepository(db)
+	productRepo := repository.NewProductRepository(db)
+	_ = productRepo
+
+	userService := usecases.NewUserService(userRepo)
+	mlService := usecases.NewMLAgentServiceWithDefaults()
+
+	userHandler := httpHandler.NewUserHandler(userService)
+	mlHandler := httpHandler.NewMLAgentHandler(mlService)
+
+	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
+
+	e.GET("/users", userHandler.ListUsers)
+	e.POST("/users", userHandler.CreateUser)
+	e.GET("/users/:id", userHandler.GetUser)
+	e.PUT("/users/:id", userHandler.UpdateUser)
+	e.DELETE("/users/:id", userHandler.DeleteUser)
+
+	e.GET("/ml/health", mlHandler.HealthCheck)
+	e.POST("/ml/demand-forecast", mlHandler.DemandForecast)
+	e.POST("/ml/smart-reorder", mlHandler.SmartReorder)
+	e.POST("/ml/price-optimization", mlHandler.PriceOptimization)
+
+	log.Println("Server starting on :8080")
+	e.Logger.Fatal(e.Start(":8080"))
 }
