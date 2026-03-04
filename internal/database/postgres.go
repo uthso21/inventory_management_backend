@@ -18,7 +18,7 @@ func Connect() {
 		getEnv("DB_HOST", "localhost"),
 		getEnv("DB_PORT", "5432"),
 		getEnv("DB_USER", "postgres"),
-		getEnv("DB_PASSWORD", "password"),
+		getEnv("DB_PASSWORD", "352235"),
 		getEnv("DB_NAME", "inventory_db"),
 		getEnv("DB_SSL_MODE", "disable"),
 	)
@@ -38,6 +38,8 @@ func Connect() {
 
 func BeginTx(ctx context.Context) (*sql.Tx, error) {
 	return DB.BeginTx(ctx, nil)
+}
+
 func getEnv(key, fallback string) string {
 	if val := os.Getenv(key); val != "" {
 		return val

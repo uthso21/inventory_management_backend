@@ -2,7 +2,7 @@ package http
 
 import (
 	"encoding/json"
-	"errors"
+
 	"net/http"
 
 	entities "github.com/uthso21/inventory_management_backend/internal/entity"

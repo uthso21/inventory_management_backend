@@ -24,17 +24,20 @@ type purchaseService struct {
 	purchaseRepo  repository.PurchaseRepository
 	warehouseRepo repository.WarehouseRepository
 	productRepo   repository.ProductRepository
+	movementRepo  repository.MovementRepository
 }
 
 func NewPurchaseService(
 	purchaseRepo repository.PurchaseRepository,
 	warehouseRepo repository.WarehouseRepository,
 	productRepo repository.ProductRepository,
+	movementRepo repository.MovementRepository,
 ) PurchaseService {
 	return &purchaseService{
 		purchaseRepo:  purchaseRepo,
 		warehouseRepo: warehouseRepo,
 		productRepo:   productRepo,
+		movementRepo:  movementRepo,
 	}
 }
 
@@ -51,28 +54,49 @@ func (s *purchaseService) ValidatePurchaseItems(items []entities.PurchaseItem) e
 }
 
 func (s *purchaseService) CreatePurchase(ctx context.Context, purchase *entities.Purchase) (int64, error) {
+
 	if purchase.Quantity <= 0 {
-		return 0, errors.New("quantity must be greater than zero")
+		return 0, ErrInvalidQuantity
 	}
 
 	tx, err := database.BeginTx(ctx)
 	if err != nil {
 		return 0, err
 	}
+
+	// Check warehouse exists
 	warehouseExists, err := s.warehouseRepo.ExistsByID(ctx, purchase.WarehouseID)
 	if err != nil {
+		_ = tx.Rollback()
 		return 0, err
 	}
 	if !warehouseExists {
+		_ = tx.Rollback()
 		return 0, ErrWarehouseNotFound
 	}
 
+	// Create Purchase
 	purchaseID, err := s.purchaseRepo.CreateWithTx(ctx, tx, purchase)
 	if err != nil {
 		_ = tx.Rollback()
 		return 0, err
 	}
 
+	// Create Movement Log (FIXED HERE)
+	movement := &entities.Movement{
+		ProductID:   purchase.ProductID,
+		WarehouseID: purchase.WarehouseID,
+		UserID:      0, // later replace with authenticated user ID
+		Type:        "PURCHASE",
+		Quantity:    purchase.Quantity,
+	}
+
+	if err := s.movementRepo.CreateWithTx(ctx, tx, movement); err != nil {
+		_ = tx.Rollback()
+		return 0, err
+	}
+
+	// Commit
 	if err := tx.Commit(); err != nil {
 		_ = tx.Rollback()
 		return 0, err
