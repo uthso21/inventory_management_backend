@@ -15,6 +15,7 @@ import (
 
 var DB *sql.DB
 
+// Connect to PostgreSQL and run migrations
 func Connect() {
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
@@ -52,17 +53,19 @@ func runMigrations(db *sql.DB) {
 		log.Fatal("Migration init error:", err)
 	}
 
-	if err = m.Up(); err != nil && err != migrate.ErrNoChange {
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		log.Fatal("Migration failed:", err)
 	}
 
 	fmt.Println("✅ Database migrations applied")
 }
 
+// BeginTx returns a transaction context
 func BeginTx(ctx context.Context) (*sql.Tx, error) {
 	return DB.BeginTx(ctx, nil)
 }
 
+// getEnv fetches environment variable or fallback
 func getEnv(key, fallback string) string {
 	if val := os.Getenv(key); val != "" {
 		return val

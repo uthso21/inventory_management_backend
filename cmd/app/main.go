@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/uthso21/inventory_management_backend/internal/database"
@@ -10,9 +11,11 @@ import (
 )
 
 func main() {
-	// Load env
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
+	// Load env if a .env file is present; avoid noisy log when it's absent
+	if _, err := os.Stat(".env"); err == nil {
+		if err := godotenv.Load(); err != nil {
+			log.Printf("Error loading .env: %v", err)
+		}
 	}
 
 	// DB init

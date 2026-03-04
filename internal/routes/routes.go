@@ -76,7 +76,7 @@ func Setup() {
 	http.HandleFunc("/products/low-stock", productHandler.GetLowStockProducts)
 
 	// Stock-out routes
-	http.HandleFunc("/stock-out", stockOutHandler.StockOut)
+	http.HandleFunc("/api/stock-out", stockOutHandler.StockOut)
 
 	// ML agent routes
 	http.HandleFunc("/ml/agent", mlHandler.ProcessQuery)
