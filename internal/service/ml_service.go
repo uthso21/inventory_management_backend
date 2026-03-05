@@ -20,24 +20,24 @@ ErrInvalidMLResponse    = errors.New("invalid response from ML service")
 ErrValidation           = errors.New("validation error")
 )
 
-type MLAgentService interface {
+type MLService interface {
 HealthCheck(ctx context.Context) (*entities.MLHealthResponse, error)
 GetDemandForecast(ctx context.Context, req *entities.DemandForecastRequest) (*entities.DemandForecastResponse, error)
 GetSmartReorder(ctx context.Context, req *entities.SmartReorderRequest) (*entities.SmartReorderResponse, error)
 GetPriceOptimization(ctx context.Context, req *entities.PriceOptimizationRequest) (*entities.PriceOptimizationResponse, error)
 }
 
-type mlAgentService struct {
+type mlService struct {
 baseURL    string
 httpClient *http.Client
 }
 
-func NewMLAgentServiceWithDefaults() MLAgentService {
+func NewMLService() MLService {
 baseURL := os.Getenv("ML_SERVICE_URL")
 if baseURL == "" {
 baseURL = "http://localhost:8000"
 }
-return &mlAgentService{
+return &mlService{
 baseURL: baseURL,
 httpClient: &http.Client{
 Timeout: 30 * time.Second,
@@ -45,8 +45,7 @@ Timeout: 30 * time.Second,
 }
 }
 
-// doRequest is a generic helper for making HTTP requests to ML service
-func (s *mlAgentService) doRequest(ctx context.Context, method, endpoint string, reqBody interface{}, result interface{}) error {
+func (s *mlService) doRequest(ctx context.Context, method, endpoint string, reqBody interface{}, result interface{}) error {
 url := fmt.Sprintf("%s%s", s.baseURL, endpoint)
 
 var body io.Reader
@@ -89,7 +88,7 @@ return ErrInvalidMLResponse
 return nil
 }
 
-func (s *mlAgentService) HealthCheck(ctx context.Context) (*entities.MLHealthResponse, error) {
+func (s *mlService) HealthCheck(ctx context.Context) (*entities.MLHealthResponse, error) {
 var result entities.MLHealthResponse
 if err := s.doRequest(ctx, http.MethodGet, "/health", nil, &result); err != nil {
 return nil, err
@@ -97,7 +96,7 @@ return nil, err
 return &result, nil
 }
 
-func (s *mlAgentService) GetDemandForecast(ctx context.Context, req *entities.DemandForecastRequest) (*entities.DemandForecastResponse, error) {
+func (s *mlService) GetDemandForecast(ctx context.Context, req *entities.DemandForecastRequest) (*entities.DemandForecastResponse, error) {
 // Validation
 if req.ProductName == "" {
 return nil, fmt.Errorf("%w: product_name is required", ErrValidation)
@@ -116,7 +115,7 @@ return nil, err
 return &result, nil
 }
 
-func (s *mlAgentService) GetSmartReorder(ctx context.Context, req *entities.SmartReorderRequest) (*entities.SmartReorderResponse, error) {
+func (s *mlService) GetSmartReorder(ctx context.Context, req *entities.SmartReorderRequest) (*entities.SmartReorderResponse, error) {
 // Validation
 if req.ProductID == "" {
 return nil, fmt.Errorf("%w: product_id is required", ErrValidation)
@@ -129,7 +128,7 @@ return nil, err
 return &result, nil
 }
 
-func (s *mlAgentService) GetPriceOptimization(ctx context.Context, req *entities.PriceOptimizationRequest) (*entities.PriceOptimizationResponse, error) {
+func (s *mlService) GetPriceOptimization(ctx context.Context, req *entities.PriceOptimizationRequest) (*entities.PriceOptimizationResponse, error) {
 // Validation
 if req.ProductName == "" {
 return nil, fmt.Errorf("%w: product_name is required", ErrValidation)

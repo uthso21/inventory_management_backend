@@ -20,7 +20,7 @@ import (
 // @BasePath /
 
 func main() {
-	mlService := usecases.NewMLAgentServiceWithDefaults()
+	mlService := usecases.NewMLService()
 	mlHandler := httpHandler.NewMLHandler(mlService)
 
 	e := echo.New()
