@@ -26,6 +26,7 @@ func Setup() {
 	productService := service.NewProductService(productRepo)
 	stockOutService := service.NewStockOutService(stockOutRepo)
 	mlService := service.NewMLAgentServiceWithDefaults()
+	inventoryMovementService := service.NewInventoryMovementService(inventoryMovementRepo)
 
 	// Handlers
 	authHandler := httpHandler.NewAuthHandler(userService)
@@ -35,6 +36,7 @@ func Setup() {
 	stockOutHandler := httpHandler.NewStockOutHandler(stockOutService)
 	productHandler := httpHandler.NewProductHandler(productService)
 	mlHandler := httpHandler.NewMLAgentHandler(mlService)
+	inventoryMovementHandler := httpHandler.NewInventoryMovementHandler(inventoryMovementService)
 
 	// Auth routes
 	http.HandleFunc("/auth/register", authHandler.Register)
@@ -44,7 +46,20 @@ func Setup() {
 	http.HandleFunc("/users", userHandler.CreateUser)
 
 	// Warehouse routes
-	http.HandleFunc("/warehouses", warehouseHandler.CreateWarehouse)
+	http.HandleFunc("/warehouses", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			warehouseHandler.ListWarehouses(w, r)
+		case http.MethodPost:
+			warehouseHandler.CreateWarehouse(w, r)
+		case http.MethodPut:
+			warehouseHandler.UpdateWarehouse(w, r)
+		case http.MethodDelete:
+			warehouseHandler.DeleteWarehouse(w, r)
+		default:
+			http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		}
+	})
 
 	// Purchase routes (JWT protected)
 	http.Handle("/purchases", middleware.JWTAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -77,6 +92,9 @@ func Setup() {
 
 	// Stock-out routes
 	http.HandleFunc("/api/stock-out", stockOutHandler.StockOut)
+
+	// Inventory movement routes (JWT protected) — history/audit of stock changes
+	http.Handle("/inventory-movements", middleware.JWTAuth(http.HandlerFunc(inventoryMovementHandler.ListMovements)))
 
 	// ML agent routes
 	http.HandleFunc("/ml/agent", mlHandler.ProcessQuery)

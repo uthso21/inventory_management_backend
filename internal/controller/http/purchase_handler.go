@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -56,23 +57,21 @@ func (h *PurchaseHandler) CreatePurchase(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		// Determine appropriate error code
 		switch {
-		case err == service.ErrWarehouseNotFound:
-			http.Error(w, `{"error":"warehouse not found"}`, http.StatusNotFound)
-		case err == service.ErrProductNotFound || err.Error()[:17] == "product not found":
-			http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusNotFound)
-		case err == service.ErrInvalidQuantity:
-			http.Error(w, `{"error":"quantity must be greater than zero"}`, http.StatusBadRequest)
-		case err == service.ErrEmptyPurchaseItems:
-			http.Error(w, `{"error":"purchase items are required"}`, http.StatusBadRequest)
+		case errors.Is(err, service.ErrWarehouseNotFound):
+			writeError(w, http.StatusNotFound, "warehouse not found")
+		case errors.Is(err, service.ErrProductNotFound):
+			writeError(w, http.StatusNotFound, err.Error())
+		case errors.Is(err, service.ErrInvalidQuantity):
+			writeError(w, http.StatusBadRequest, "quantity must be greater than zero")
+		case errors.Is(err, service.ErrEmptyPurchaseItems):
+			writeError(w, http.StatusBadRequest, "purchase items are required")
 		default:
-			http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusCreated, map[string]interface{}{
 		"message":  "purchase created successfully",
 		"purchase": purchase,
 	})
@@ -88,12 +87,11 @@ func (h *PurchaseHandler) ListPurchases(w http.ResponseWriter, r *http.Request) 
 
 	purchases, err := h.purchaseService.ListPurchases(r.Context())
 	if err != nil {
-		http.Error(w, `{"error":"failed to retrieve purchases"}`, http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "failed to retrieve purchases")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"purchases": purchases,
 		"total":     len(purchases),
 	})
@@ -121,10 +119,9 @@ func (h *PurchaseHandler) GetPurchase(w http.ResponseWriter, r *http.Request) {
 
 	purchase, err := h.purchaseService.GetPurchase(r.Context(), id)
 	if err != nil {
-		http.Error(w, `{"error":"purchase not found"}`, http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "purchase not found")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(purchase)
+	writeJSON(w, http.StatusOK, purchase)
 }

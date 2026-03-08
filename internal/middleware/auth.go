@@ -38,7 +38,11 @@ func JWTAuth(next http.Handler) http.Handler {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
-			return []byte(os.Getenv("JWT_SECRET")), nil
+			secret := os.Getenv("JWT_SECRET")
+			if secret == "" {
+				secret = "changeme-in-production"
+			}
+			return []byte(secret), nil
 		})
 
 		if err != nil || !token.Valid {
